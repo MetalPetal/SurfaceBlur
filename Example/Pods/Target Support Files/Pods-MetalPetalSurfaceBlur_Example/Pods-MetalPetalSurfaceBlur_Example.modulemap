@@ -1,0 +1,6 @@
+framework module Pods_MetalPetalSurfaceBlur_Example {
+  umbrella header "Pods-MetalPetalSurfaceBlur_Example-umbrella.h"
+
+  export *
+  module * { export * }
+}

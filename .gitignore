@@ -1,3 +1,5 @@
+.DS_Store
+
 # Xcode
 #
 # gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore
@@ -16,6 +18,7 @@ DerivedData/
 *.perspectivev3
 !default.perspectivev3
 xcuserdata/
+xcshareddata/
 
 ## Other
 *.moved-aside
@@ -52,7 +55,7 @@ Carthage/Build
 
 fastlane/report.xml
 fastlane/Preview.html
-fastlane/screenshots/**/*.png
+fastlane/screenshots
 fastlane/test_output
 
 # Code Injection
