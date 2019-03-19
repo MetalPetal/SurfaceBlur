@@ -20,7 +20,6 @@ pod 'MetalPetalSurfaceBlur', :git => 'https://github.com/MetalPetal/SurfaceBlur.
 
 # Optional
 pod 'MetalPetal/Swift'
-
 ```
 
 ## License
