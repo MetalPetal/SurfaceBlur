@@ -2,7 +2,11 @@
 
 Surface Blur / Bilateral Filter for MetalPetal.
 
+## Preview
+
 ![Preview](Assets/preview.jpg)
+
+*Photo by Ben Scott on Unsplash. https://unsplash.com/photos/tWb7IsL9CnY*
 
 ## Usage
 
