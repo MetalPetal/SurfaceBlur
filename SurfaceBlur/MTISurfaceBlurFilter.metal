@@ -16,46 +16,46 @@ namespace metalpetal {
             float2 textureCoordinate;
         } MTIDefaultVertexOut;
         
-        half normpdf(half x, half sigma)
+        float normpdf(float x, float sigma)
         {
             return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;
         }
         
-        half normpdf3(half3 v, half sigma)
+        float normpdf3(float3 v, float sigma)
         {
             return 0.39894*exp(-0.5*dot(v,v)/(sigma*sigma))/sigma;
         }
         
         constant int mtiSurfaceBlurKernelRadius [[function_constant(0)]];
-        fragment half4 mtiSurfaceBlur(MTIDefaultVertexOut vertexIn [[stage_in]],
-                                    texture2d<half, access::sample> sourceTexture [[texture(0)]],
+        fragment float4 mtiSurfaceBlur(MTIDefaultVertexOut vertexIn [[stage_in]],
+                                    texture2d<float, access::sample> sourceTexture [[texture(0)]],
                                     sampler sourceSampler [[sampler(0)]],
                                     const device float * weights [[buffer(0)]],
                                     constant float & bsigma [[buffer(1)]]) {
             const int kSize = mtiSurfaceBlurKernelRadius - 1;
             
-            half3 finalColor = half3(0.0);
+            float3 finalColor = float3(0.0);
             
-            half3 c = sourceTexture.sample(sourceSampler, vertexIn.textureCoordinate).rgb;
+            float3 c = sourceTexture.sample(sourceSampler, vertexIn.textureCoordinate).rgb;
             
-            half Z = 0.0;
+            float Z = 0.0;
             
-            half3 cc;
-            half factor;
-            half bZ = 1.0/normpdf(0.0, bsigma);
+            float3 cc;
+            float factor;
+            float bZ = 1.0/normpdf(0.0, bsigma);
             
             for (int i=-kSize; i <= kSize; ++i)
             {
                 for (int j=-kSize; j <= kSize; ++j)
                 {
                     cc = sourceTexture.sample(sourceSampler, vertexIn.textureCoordinate + float2(i,j)/float2(sourceTexture.get_width(), sourceTexture.get_height())).rgb;
-                    factor = normpdf3(cc-c, bsigma) * bZ * ((half)weights[kSize+j]) * ((half)weights[kSize+i]);
+                    factor = normpdf3(cc-c, bsigma) * bZ * weights[kSize+j] * weights[kSize+i];
                     Z += factor;
                     finalColor += factor * cc;
                 }
             }
             
-            return half4(finalColor/Z, 1.0);
+            return float4(finalColor/Z, 1.0);
         }
     }
 }
