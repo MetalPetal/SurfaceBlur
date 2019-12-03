@@ -19,9 +19,10 @@
 #import "MTIWeakToStrongObjectsMapTable.h"
 #import "MTIError.h"
 #import "MTICVMetalTextureCache.h"
-#import "MTICVMetalTextureBridge.h"
+#import "MTICVMetalIOSurfaceBridge.h"
 #import "MTILock.h"
 #import "MTIPixelFormat.h"
+#import "MTILibrarySource.h"
 #import <MetalPerformanceShaders/MetalPerformanceShaders.h>
 
 NSString * const MTIContextDefaultLabel = @"MetalPetal";
@@ -38,6 +39,7 @@ NSString * const MTIContextDefaultLabel = @"MetalPetal";
         _label = MTIContextDefaultLabel;
         _defaultLibraryURL = MTIDefaultLibraryURLForBundle([NSBundle bundleForClass:self.class]);
         _textureLoaderClass = MTIContextOptions.defaultTextureLoaderClass;
+        _coreVideoMetalTextureBridgeClass = MTIContextOptions.defaultCoreVideoMetalTextureBridgeClass;
     }
     return self;
 }
@@ -51,6 +53,7 @@ NSString * const MTIContextDefaultLabel = @"MetalPetal";
     options.label = _label;
     options.defaultLibraryURL = _defaultLibraryURL;
     options.textureLoaderClass = _textureLoaderClass;
+    options.coreVideoMetalTextureBridgeClass = _coreVideoMetalTextureBridgeClass;
     return options;
 }
 
@@ -64,11 +67,34 @@ static Class _defaultTextureLoaderClass = nil;
     return _defaultTextureLoaderClass ?: MTKTextureLoader.class;
 }
 
+static Class _defaultCoreVideoMetalTextureBridgeClass = nil;
+
++ (void)setDefaultCoreVideoMetalTextureBridgeClass:(Class<MTICVMetalTextureBridging>)defaultCoreVideoMetalTextureBridgeClass {
+    _defaultCoreVideoMetalTextureBridgeClass = defaultCoreVideoMetalTextureBridgeClass;
+}
+
++ (Class<MTICVMetalTextureBridging>)defaultCoreVideoMetalTextureBridgeClass {
+    if (@available(iOS 11_0, macOS 10_11, *)) {
+        return _defaultCoreVideoMetalTextureBridgeClass ?: MTICVMetalIOSurfaceBridge.class;
+    } else {
+        return _defaultCoreVideoMetalTextureBridgeClass ?: MTICVMetalTextureCache.class;
+    }
+}
+
 @end
 
 
 NSURL * MTIDefaultLibraryURLForBundle(NSBundle *bundle) {
     return [bundle URLForResource:@"default" withExtension:@"metallib"];
+}
+
+
+static BOOL MTIMPSSupportsMTLDevice(id<MTLDevice> device) {
+#if TARGET_OS_SIMULATOR
+    return NO;
+#else
+    return MPSSupportsMTLDevice(device);
+#endif
 }
 
 
@@ -141,6 +167,17 @@ static void MTIContextEnumerateAllInstances(void (^enumerator)(MTIContext *conte
     if (self = [super init]) {
         NSParameterAssert(device);
         NSParameterAssert(options);
+        
+        #if TARGET_OS_SIMULATOR
+        if (!MTIContext.enablesSimulatorSupport) {
+            NSError *error = MTIErrorCreate(MTIErrorFeatureNotAvailableOnSimulator, @{@"MTIFeatureNotAvailable": @"MTIContext"});
+            if (inOutError) {
+                *inOutError = error;
+            }
+            return nil;
+        }
+        #endif
+        
         if (!device) {
             if (inOutError) {
                 *inOutError = MTIErrorCreate(MTIErrorDeviceNotFound, nil);
@@ -166,7 +203,7 @@ static void MTIContextEnumerateAllInstances(void (^enumerator)(MTIContext *conte
         _commandQueue = [device newCommandQueue];
         _commandQueue.label = options.label;
         
-        _isMetalPerformanceShadersSupported = MPSSupportsMTLDevice(device);
+        _isMetalPerformanceShadersSupported = MTIMPSSupportsMTLDevice(device);
         _isYCbCrPixelFormatSupported = options.enablesYCbCrPixelFormatSupport && MTIDeviceSupportsYCBCRPixelFormat(device);
         
         _textureLoader = [options.textureLoaderClass newTextureLoaderWithDevice:device];
@@ -191,17 +228,13 @@ static void MTIContextEnumerateAllInstances(void (^enumerator)(MTIContext *conte
         
         _renderingLock = MTILockCreate();
         
-        if (@available(iOS 11_0, macOS 10_11, *)) {
-            _coreVideoTextureBridge = [[MTICVMetalTextureBridge alloc] initWithDevice:device];
-        } else {
-            NSError *coreVideoTextureCacheError = nil;
-            _coreVideoTextureBridge = [[MTICVMetalTextureCache alloc] initWithDevice:device cacheAttributes:nil textureAttributes:nil error:&coreVideoTextureCacheError];
-            if (coreVideoTextureCacheError) {
-                if (inOutError) {
-                    *inOutError = coreVideoTextureCacheError;
-                }
-                return nil;
+        NSError *coreVideoMetalTextureBridgeError = nil;
+        _coreVideoTextureBridge = [options.coreVideoMetalTextureBridgeClass newCoreVideoMetalTextureBridgeWithDevice:device error:&coreVideoMetalTextureBridgeError];
+        if (coreVideoMetalTextureBridgeError) {
+            if (inOutError) {
+                *inOutError = coreVideoMetalTextureBridgeError;
             }
+            return nil;
         }
         
         if (options.automaticallyReclaimResources) {
@@ -222,7 +255,7 @@ static void MTIContextEnumerateAllInstances(void (^enumerator)(MTIContext *conte
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         id<MTLDevice> device = MTLCreateSystemDefaultDevice();
-        _defaultMetalDeviceSupportsMPS = MPSSupportsMTLDevice(device);
+        _defaultMetalDeviceSupportsMPS = MTIMPSSupportsMTLDevice(device);
     });
     return _defaultMetalDeviceSupportsMPS;
 }
@@ -347,7 +380,11 @@ static NSString * const MTIContextRenderingLockNotLockedErrorDescription = @"Con
     NSAssert([self.renderingLock tryLock] == NO, MTIContextRenderingLockNotLockedErrorDescription);
     id<MTLLibrary> library = self.libraryCache[URL];
     if (!library) {
-        library = [self.device newLibraryWithFile:URL.path error:error];
+        if ([URL.scheme isEqualToString:MTIURLSchemeForLibraryWithSource]) {
+            library = [MTILibrarySourceRegistration.sharedRegistration newLibraryWithURL:URL device:self.device error:error];
+        } else {
+            library = [self.device newLibraryWithFile:URL.path error:error];
+        }
         if (library) {
             self.libraryCache[URL] = library;
         }
@@ -372,9 +409,18 @@ static NSString * const MTIContextRenderingLockNotLockedErrorDescription = @"Con
         }
         
         if (@available(iOS 10.0, *)) {
+            NSString *functionName = descriptor.name;
+            #if TARGET_OS_SIMULATOR
+            for (NSString *name in library.functionNames) {
+                if ([name hasSuffix:[@"::" stringByAppendingString:descriptor.name]]) {
+                    functionName = name;
+                    break;
+                }
+            }
+            #endif
             if (descriptor.constantValues) {
                 NSError *error = nil;
-                cachedFunction = [library newFunctionWithName:descriptor.name constantValues:descriptor.constantValues error:&error];
+                cachedFunction = [library newFunctionWithName:functionName constantValues:descriptor.constantValues error:&error];
                 if (error) {
                     if (inOutError) {
                         *inOutError = error;
@@ -382,7 +428,7 @@ static NSString * const MTIContextRenderingLockNotLockedErrorDescription = @"Con
                     return nil;
                 }
             } else {
-                cachedFunction = [library newFunctionWithName:descriptor.name];
+                cachedFunction = [library newFunctionWithName:functionName];
             }
         } else {
             cachedFunction = [library newFunctionWithName:descriptor.name];
@@ -533,6 +579,20 @@ static NSString * const MTIContextRenderingLockNotLockedErrorDescription = @"Con
 
 - (void)handleMemoryWarning {
     [self reclaimResources];
+}
+
+@end
+
+@implementation MTIContext (SimulatorSupport)
+
+static BOOL _enablesSimulatorSupport = YES;
+
++ (void)setEnablesSimulatorSupport:(BOOL)enablesSimulatorSupport {
+    _enablesSimulatorSupport = enablesSimulatorSupport;
+}
+
++ (BOOL)enablesSimulatorSupport {
+    return _enablesSimulatorSupport;
 }
 
 @end

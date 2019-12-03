@@ -48,8 +48,14 @@ FOUNDATION_EXPORT NSString * const MTIContextDefaultLabel;
 /// The texture loader to use. Possible values are MTKTextureLoader.class, MTITextureLoaderForiOS9WithImageOrientationFix.class
 @property (nonatomic) Class<MTITextureLoader> textureLoaderClass;
 
+/// The core video - metal texture bridge class to use. Possible values are MTICVMetalTextureCache.class (using CVMetalTextureRef), MTICVMetalIOSurfaceBridge.class (using IOSurface to convert CVPixelBuffer to metal texture).
+@property (nonatomic) Class<MTICVMetalTextureBridging> coreVideoMetalTextureBridgeClass;
+
 /// The default value for this property is MTKTextureLoader.class
 @property (nonatomic, class) Class<MTITextureLoader> defaultTextureLoaderClass;
+
+/// On iOS 11/macOS 10.11 or later, the default value is MTICVMetalIOSurfaceBridge.class. Before iOS 11/macOS 10.11, the defualt value is MTICVMetalTextureCache.class.
+@property (nonatomic, class) Class<MTICVMetalTextureBridging> defaultCoreVideoMetalTextureBridgeClass;
 
 @end
 
@@ -101,6 +107,13 @@ FOUNDATION_EXPORT NSURL * _Nullable MTIDefaultLibraryURLForBundle(NSBundle *bund
 @end
 
 @interface MTIContext (MemoryWarningHandling) <MTIMemoryWarningHandling>
+
+@end
+
+@interface MTIContext (SimulatorSupport)
+
+/// Whether to render on iOS simulators. The default value is YES. If the value of this property is NO, the `MTIContext` initialization fails immediately with an error (MTIErrorFeatureNotAvailableOnSimulator) on Simulators. This property is relevant only during the initialization of an `MTIContext`.
+@property (nonatomic, class) BOOL enablesSimulatorSupport;
 
 @end
 

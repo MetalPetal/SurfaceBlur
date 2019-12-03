@@ -32,6 +32,7 @@
 #import <MetalPetal/MTITransformFilter.h>
 #import <MetalPetal/MTIBlendWithMaskFilter.h>
 #import <MetalPetal/MTIImageView.h>
+#import <MetalPetal/MTIThreadSafeImageView.h>
 #import <MetalPetal/MTIRenderTask.h>
 #import <MetalPetal/MTIRenderPipelineKernel.h>
 #import <MetalPetal/MTIKernel.h>
@@ -45,6 +46,7 @@
 #import <MetalPetal/MTIImageOrientation.h>
 #import <MetalPetal/MTITextureLoader.h>
 #import <MetalPetal/MTIWeakToStrongObjectsMapTable.h>
+#import <MetalPetal/MTICVMetalIOSurfaceBridge.h>
 #import <MetalPetal/MTIRenderGraphOptimization.h>
 #import <MetalPetal/MTIMemoryWarningObserver.h>
 #import <MetalPetal/MTIImageProperties.h>
@@ -64,11 +66,11 @@
 #import <MetalPetal/MTIAlphaType.h>
 #import <MetalPetal/MTICVPixelBufferPool.h>
 #import <MetalPetal/MTITransform.h>
+#import <MetalPetal/MTILibrarySource.h>
 #import <MetalPetal/MTICVPixelBufferPromise.h>
 #import <MetalPetal/MTIVector+SIMD.h>
 #import <MetalPetal/MTITexturePool.h>
 #import <MetalPetal/MTIImagePromiseDebug.h>
-#import <MetalPetal/MTICVMetalTextureBridge.h>
 #import <MetalPetal/MTIImagePromise.h>
 #import <MetalPetal/MTITextureDimensions.h>
 #import <MetalPetal/MTIImageRenderingContext.h>
