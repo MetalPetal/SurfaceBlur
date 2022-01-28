@@ -37,7 +37,7 @@ static float MTIGaussianDistributionPDF(float x, float sigma) {
         [constants setConstantValue:&radius type:MTLDataTypeInt withName:@"metalpetal::surfaceblur::mtiSurfaceBlurKernelRadius"];
         _kernel = [[MTIRenderPipelineKernel alloc]
                    initWithVertexFunctionDescriptor:[[MTIFunctionDescriptor alloc] initWithName:MTIFilterPassthroughVertexFunctionName]
-                   fragmentFunctionDescriptor:[[MTIFunctionDescriptor alloc] initWithName:@"mtiSurfaceBlur" constantValues:constants libraryURL:MTIDefaultLibraryURLForBundle([NSBundle bundleForClass:self.class])]
+                   fragmentFunctionDescriptor:[[MTIFunctionDescriptor alloc] initWithName:@"metalpetal::surfaceblur::mtiSurfaceBlur" constantValues:constants libraryURL:MTIDefaultLibraryURLForBundle([NSBundle bundleForClass:self.class])]
                    vertexDescriptor:nil
                    colorAttachmentCount:1
                    alphaTypeHandlingRule:MTIAlphaTypeHandlingRule.generalAlphaTypeHandlingRule];

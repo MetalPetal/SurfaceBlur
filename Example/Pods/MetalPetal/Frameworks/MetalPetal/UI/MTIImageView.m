@@ -18,9 +18,12 @@
 
 @property (nonatomic) CGFloat screenScale;
 
+@property (nonatomic, strong) NSError *contextCreationError;
+
 @end
 
 @implementation MTIImageView
+@synthesize context = _context;
 
 - (instancetype)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
@@ -37,22 +40,17 @@
 }
 
 - (void)setupImageView {
-    if (@available(iOS 11.0, *)) {
-        self.accessibilityIgnoresInvertColors = YES;
-    }
+    self.accessibilityIgnoresInvertColors = YES;
     
     _resizingMode = MTIDrawableRenderingResizingModeAspect;
+    _automaticallyCreatesContext = YES;
     
-    NSError *error;
-    _context = [[MTIContext alloc] initWithDevice:MTLCreateSystemDefaultDevice() error:&error];
-    if (error) {
-        NSLog(@"%@: Failed to create MTIContext - %@",self,error);
-    }
-    MTKView *renderView = [[MTKView alloc] initWithFrame:self.bounds device:_context.device];
+    MTKView *renderView = [[MTKView alloc] initWithFrame:self.bounds device:nil];
     renderView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     renderView.delegate = self;
     renderView.paused = YES;
     renderView.enableSetNeedsDisplay = YES;
+    renderView.contentMode = self.contentMode;
     [self addSubview:renderView];
     _renderView = renderView;
     _drawsImmediately = NO;
@@ -84,6 +82,27 @@
 - (void)setContext:(MTIContext *)context {
     _context = context;
     _renderView.device = context.device;
+}
+
+- (MTIContext *)context {
+    [self setupContextIfNeeded];
+    return _context;
+}
+
+- (void)setupContextIfNeeded {
+    if (!_context && !_contextCreationError && _automaticallyCreatesContext) {
+        NSError *error;
+        _context = [[MTIContext alloc] initWithDevice:MTLCreateSystemDefaultDevice() error:&error];
+        if (error) {
+            _contextCreationError = error;
+        }
+        _renderView.device = _context.device;
+    }
+}
+
+- (void)setContentMode:(UIViewContentMode)contentMode {
+    [super setContentMode:contentMode];
+    _renderView.contentMode = contentMode;
 }
 
 - (void)setOpaque:(BOOL)opaque {
@@ -149,7 +168,7 @@
         CGFloat widthScale = imageSize.width/renderView.bounds.size.width;
         CGFloat heightScale = imageSize.height/renderView.bounds.size.height;
         CGFloat nativeScale = _screenScale;
-        CGFloat scale = MIN(MAX(widthScale,heightScale),nativeScale);
+        CGFloat scale = MAX(MIN(MAX(widthScale,heightScale),nativeScale), 1.0);
         if (ABS(renderView.contentScaleFactor - scale) > 0.00001) {
             renderView.contentScaleFactor = scale;
         }
@@ -189,16 +208,15 @@
 - (void)drawInMTKView:(MTKView *)view {
     @autoreleasepool {
         if (!self.isHidden && self.alpha > 0) {
+            [self setupContextIfNeeded];
+            
             MTIContext *context = _context;
-            NSAssert(context != nil, @"Context is nil.");
             if (!context) {
                 return;
             }
             MTIImage *imageToRender = _image;
             if (imageToRender) {
-                MTIDrawableRenderingRequest *request = [[MTIDrawableRenderingRequest alloc] init];
-                request.drawableProvider = view;
-                request.resizingMode = _resizingMode;
+                MTIDrawableRenderingRequest *request = [[MTIDrawableRenderingRequest alloc] initWithDrawableProvider:view resizingMode:_resizingMode];
                 NSError *error;
                 [context renderImage:imageToRender toDrawableWithRequest:request error:&error];
                 if (error) {

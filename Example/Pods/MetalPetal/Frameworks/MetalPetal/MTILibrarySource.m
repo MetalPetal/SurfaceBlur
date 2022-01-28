@@ -7,7 +7,6 @@
 
 #import "MTILibrarySource.h"
 #import "MTILock.h"
-#import "MTIDefer.h"
 
 NSString * const MTIURLSchemeForLibraryWithSource = @"mti.library-source";
 
@@ -21,6 +20,7 @@ static NSURL * MTIURLForLibrarySource(NSString *identifier) {
     return [components URL];
 }
 
+__attribute__((objc_subclassing_restricted))
 @interface MTILibrarySource : NSObject
 
 @property (nonatomic, copy, nullable) MTLCompileOptions *compileOptions;

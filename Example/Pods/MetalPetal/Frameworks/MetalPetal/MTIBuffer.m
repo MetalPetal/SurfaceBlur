@@ -6,11 +6,11 @@
 //
 
 #import "MTIBuffer.h"
-#import "MTIWeakToStrongObjectsMapTable.h"
 #import "MTILock.h"
 #import "MTIDefer.h"
 #import <mach/mach.h>
 
+__attribute__((objc_subclassing_restricted))
 @interface MTIPageAlignedBuffer : NSObject
 
 @property (nonatomic, readonly) void * contents;

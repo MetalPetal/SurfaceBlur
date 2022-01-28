@@ -6,9 +6,7 @@
 //
 //
 
-#import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
-#import "MTIImagePromise.h"
 
 @class MTIImage, MTIContext;
 
@@ -17,14 +15,7 @@ NS_ASSUME_NONNULL_BEGIN
 /*! @brief Rendering context related constant for MTIContextImageAssociatedValueTableName. */
 FOUNDATION_EXPORT NSString * const MTIContextImagePersistentResolutionHolderTableName;
 
-@protocol MTIImagePromiseResolution <NSObject>
-
-@property (nonatomic,readonly) id<MTLTexture> texture;
-
-- (void)markAsConsumedBy:(id)consumer;
-
-@end
-
+__attribute__((objc_subclassing_restricted))
 @interface MTIImageRenderingContext : NSObject
 
 @property (nonatomic, strong, readonly) MTIContext *context;
@@ -35,16 +26,21 @@ FOUNDATION_EXPORT NSString * const MTIContextImagePersistentResolutionHolderTabl
 
 + (instancetype)new NS_UNAVAILABLE;
 
-- (instancetype)initWithContext:(MTIContext *)context;
+/// Use this method in -[MTIImagePromise resolveWithContext:error:] to get the resolved dependencies of the promise. The `image` parameter must be one of the resolving promise's dependencies. An exception is thrown when calling this method outside the -[MTIImagePromise resolveWithContext:error:] method or passing an invalid image.
+- (id<MTLTexture>)resolvedTextureForImage:(MTIImage *)image;
 
-- (nullable id<MTIImagePromiseResolution>)resolutionForImage:(MTIImage *)image error:(NSError **)error;
+/// Use this method in -[MTIImagePromise resolveWithContext:error:] to get the sampler state of an image. The `image` parameter must be one of the resolving promise's dependencies. An exception is thrown when calling this method outside the -[MTIImagePromise resolveWithContext:error:] method or passing an invalid image.
+- (id<MTLSamplerState>)resolvedSamplerStateForImage:(MTIImage *)image;
 
 @end
 
 NS_ASSUME_NONNULL_END
 
-
+#if __has_include(<MetalPetal/MetalPetal.h>)
+#import <MetalPetal/MTIContext.h>
+#else
 #import "MTIContext.h"
+#endif
 
 NS_ASSUME_NONNULL_BEGIN
 

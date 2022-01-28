@@ -8,7 +8,6 @@
 
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
-#import "MTIPixelFormat.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -23,7 +22,7 @@ FOUNDATION_EXPORT NSString * const MTIFilterColorMatrixFragmentFunctionName;
 
 @class MTIImage;
 
-@protocol MTIFilter <NSObject>
+@protocol MTIFilter
 
 @property (nonatomic) MTLPixelFormat outputPixelFormat; //Default: MTIPixelFormatUnspecified aka MTLPixelFormatInvalid
 

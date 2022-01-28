@@ -11,6 +11,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 /// An immutable wrapper for MTLTextureDescriptor
+__attribute__((objc_subclassing_restricted))
 @interface MTITextureDescriptor : NSObject <NSCopying>
 
 - (instancetype)init NS_UNAVAILABLE;
@@ -58,11 +59,21 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (readonly, nonatomic) NSUInteger depth;
 
+@property (readonly, nonatomic) MTLResourceOptions resourceOptions;
+
+@property (readonly, nonatomic) MTLHazardTrackingMode hazardTrackingMode API_AVAILABLE(macos(10.15), ios(13.0));
+
+- (MTLSizeAndAlign)heapTextureSizeAndAlignWithDevice:(id<MTLDevice>)device;
+
+- (nullable id<MTLTexture>)newTextureWithDevice:(id<MTLDevice>)device NS_SWIFT_NAME(makeTexture(device:));
+
+- (nullable id<MTLTexture>)newTextureWithHeap:(id<MTLHeap>)heap NS_SWIFT_NAME(makeTexture(heap:));
+
 @end
 
 @interface MTLTextureDescriptor (MTITextureDescriptor)
 
-- (MTITextureDescriptor *)newMTITextureDescriptor NS_SWIFT_NAME(makeMTITextureDescriptor());;
+- (MTITextureDescriptor *)newMTITextureDescriptor NS_SWIFT_NAME(makeMTITextureDescriptor());
 
 @end
 

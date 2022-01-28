@@ -17,7 +17,7 @@ Pod::Spec.new do |s|
   s.author           = { 'yuao' => 'me@imyuao.com' }
   s.source           = { :git => 'https://github.com/MetalPetal/SurfaceBlur.git', :tag => s.version.to_s }
 
-  s.ios.deployment_target = '10.0'
+  s.ios.deployment_target = '11.0'
   s.macos.deployment_target = '10.13'
 
   s.source_files = 'SurfaceBlur/**/*'
